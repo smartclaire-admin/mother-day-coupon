@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>核銷 — 招待專用</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Helvetica Neue',Arial,sans-serif;background:#f5f0eb;min-height:100vh;padding:24px 16px;}
+h1{font-size:18px;font-weight:600;color:#333;margin-bottom:4px;}
+.sub{font-size:13px;color:#999;margin-bottom:24px;}
+.input-row{display:flex;gap:8px;margin-bottom:16px;}
+input{flex:1;padding:14px;border:1.5px solid #ddd;border-radius:12px;font-size:16px;background:#fff;}
+input:focus{outline:none;border-color:#d4547a;}
+.btn{padding:14px 20px;background:#d4547a;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:500;cursor:pointer;}
+.btn:active{transform:scale(0.98);}
+.result{border-radius:14px;padding:20px;margin-bottom:16px;text-align:center;}
+.result.valid{background:#EAF3DE;}
+.result.used{background:#FCEBEB;}
+.result.notfound{background:#F1EFE8;}
+.result-title{font-size:17px;font-weight:600;margin-bottom:6px;}
+.result.valid .result-title{color:#27500A;}
+.result.used .result-title{color:#A32D2D;}
+.result.notfound .result-title{color:#5F5E5A;}
+.result-code{font-size:13px;font-family:monospace;color:#888;margin-bottom:16px;}
+.btn-redeem{width:100%;padding:16px;background:#27500A;color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;}
+.btn-redeem:active{transform:scale(0.98);}
+.btn-reset{width:100%;padding:14px;background:transparent;color:#999;border:1.5px solid #ddd;border-radius:12px;font-size:14px;cursor:pointer;margin-top:10px;}
+.log-section{margin-top:24px;}
+.log-title{font-size:13px;font-weight:500;color:#999;margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;}
+.log-item{background:#fff;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;font-size:13px;}
+.log-code{font-family:monospace;color:#d4547a;}
+.log-time{color:#bbb;font-size:11px;}
+</style>
+</head>
+<body>
+<h1>兌換券核銷</h1>
+<div class="sub">招待專用 — 輸入券號完成核銷</div>
+
+<div class="input-row">
+  <input type="text" id="code-input" placeholder="輸入券號，例如 MTH-2026-AB1CD" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')checkCoupon()"/>
+  <button class="btn" onclick="checkCoupon()">查詢</button>
+</div>
+
+<div id="result"></div>
+
+<div class="log-section">
+  <div class="log-title">今日核銷紀錄</div>
+  <div id="log-list"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://fzsusjxlzffqdidgegrx.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_eOL6FsGFg6d2-QG8rNAxyA_udpYKKHW';
+let currentCoupon = null;
+
+async function checkCoupon() {
+  const code = document.getElementById('code-input').value.trim();
+  if (!code) return;
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/coupons?code=eq.${code}&select=*`, {
+    headers: {'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY}
+  });
+  const data = await res.json();
+  const coupon = data[0];
+  const result = document.getElementById('result');
+
+  if (!coupon) {
+    currentCoupon = null;
+    result.innerHTML = `<div class="result notfound"><div class="result-title">找不到此券號</div><div class="result-code">${code}</div><div style="font-size:13px;color:#888;">請確認券號是否正確</div></div>`;
+    return;
+  }
+
+  currentCoupon = coupon;
+
+  if (coupon.used) {
+    result.innerHTML = `<div class="result used"><div class="result-title">此券已兌換</div><div class="result-code">${code}</div><div style="font-size:13px;color:#A32D2D;">已於 ${new Date(coupon.used_at).toLocaleString('zh-TW')} 使用</div></div><button class="btn-reset" onclick="reset()">重新查詢</button>`;
+  } else {
+    result.innerHTML = `<div class="result valid"><div class="result-title">有效兌換券</div><div class="result-code">${code}</div><div style="font-size:13px;color:#3B6D11;margin-bottom:14px;">確認發出禮物後，按下核銷</div><button class="btn-redeem" onclick="redeemCoupon()">確認核銷，發出禮物</button></div><button class="btn-reset" onclick="reset()">取消</button>`;
+  }
+}
+
+async function redeemCoupon() {
+  if (!currentCoupon) return;
+  const code = currentCoupon.code;
+  const now = new Date().toISOString();
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/coupons?code=eq.${code}`, {
+    method: 'PATCH',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({used: true, used_at: now})
+  });
+
+  if (res.ok) {
+    document.getElementById('result').innerHTML = `<div class="result valid"><div class="result-title">核銷完成！</div><div class="result-code">${code}</div><div style="font-size:13px;color:#3B6D11;">此券已作廢，無法再次使用</div></div><button class="btn-reset" onclick="reset()">繼續核銷下一張</button>`;
+    loadLog();
+  }
+}
+
+function reset() {
+  document.getElementById('code-input').value = '';
+  document.getElementById('result').innerHTML = '';
+  currentCoupon = null;
+}
+
+async function loadLog() {
+  const today = new Date().toISOString().split('T')[0];
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/coupons?used=eq.true&used_at=gte.${today}T00:00:00&order=used_at.desc&select=code,used_at`, {
+    headers: {'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY}
+  });
+  const data = await res.json();
+  const list = document.getElementById('log-list');
+  if (!data.length) { list.innerHTML = '<div style="font-size:13px;color:#bbb;text-align:center;padding:16px;">暫無紀錄</div>'; return; }
+  list.innerHTML = data.map(d => `<div class="log-item"><span class="log-code">${d.code}</span><span class="log-time">${new Date(d.used_at).toLocaleTimeString('zh-TW')}</span></div>`).join('');
+}
+
+loadLog();
+</script>
+</body>
+</html>
