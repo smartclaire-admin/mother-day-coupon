@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>發券 — 招待專用</title>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Helvetica Neue',Arial,sans-serif;background:#f5f0eb;min-height:100vh;padding:24px 16px;}
@@ -79,9 +79,7 @@ async function generate() {
     document.getElementById('qr-wrap').style.display = 'block';
     document.getElementById('code-num').textContent = code;
     document.getElementById('qrcode').innerHTML = '';
-    QRCode.toCanvas(document.createElement('canvas'), url, {width: 200, margin: 1}, function(err, canvas) {
-      if (!err) document.getElementById('qrcode').appendChild(canvas);
-    });
+    new QRCode(document.getElementById('qrcode'), {text: url, width: 200, height: 200});
     loadStats();
   }
 
