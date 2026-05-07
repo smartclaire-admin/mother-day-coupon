@@ -4,19 +4,18 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>母親節禮物兌換券</title>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Helvetica Neue',Arial,sans-serif;background:#f5f0eb;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
 .wrap{width:100%;max-width:400px;}
 .coupon-card{position:relative;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.18);background:#fff;}
-.coupon-img{width:100%;display:block;max-height:340px;object-fit:cover;object-position:top;}
+.coupon-img{width:100%;display:block;}
 .coupon-bottom{background:#fff;padding:20px;text-align:center;border-top:2px dashed #f4a0b0;}
 .coupon-num-label{font-size:12px;color:#999;margin-bottom:4px;letter-spacing:1px;}
 .coupon-num{font-size:18px;font-weight:700;color:#d4547a;letter-spacing:2px;margin-bottom:16px;font-family:monospace;}
 #qrcode{display:flex;justify-content:center;margin-bottom:12px;}
-#qrcode canvas{border-radius:8px;}
-.hint{font-size:12px;color:#aaa;line-height:1.6;}
+.hint{font-size:12px;color:#aaa;line-height:1.6;white-space:pre-line;}
 .loading{text-align:center;padding:60px 20px;color:#999;font-size:15px;}
 .error{text-align:center;padding:60px 20px;color:#e24b4a;font-size:15px;line-height:1.8;}
 .used-banner{background:#e24b4a;color:#fff;text-align:center;padding:14px;font-size:15px;font-weight:500;}
@@ -71,9 +70,7 @@ async function init() {
   `;
 
   if (!coupon.used) {
-    QRCode.toCanvas(document.createElement('canvas'), pageUrl, {width: 160, margin: 1}, function(err, canvas) {
-      if (!err) document.getElementById('qrcode').appendChild(canvas);
-    });
+    new QRCode(document.getElementById('qrcode'), {text: pageUrl, width: 160, height: 160});
   }
 }
 
